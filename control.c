@@ -59,7 +59,7 @@ void sendCommand(char cmd)
     struct sockaddr_in server_addr;
     char line[1024], ans[1024];
     struct control_struct *datos = malloc(sizeof(struct control_struct));
-    *(int *)&datos->key = 1;
+    *(int *)&datos->key = SCKT_KEY;
     *(char *)&datos->command = cmd;
 
     // Se crea descriptor de archivo para socket

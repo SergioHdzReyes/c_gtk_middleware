@@ -8,31 +8,33 @@
 #include <netinet/in.h>
 #include "utils.h"
 
+const int ITEMS = 4;
+int cur_col, cur_row;
+
 GtkWidget *window;
 GtkBuilder *builder;
 GtkWidget *fixed;
 
-GtkWidget *img1;
-GtkWidget *img2;
-GtkWidget *img3;
+GtkWidget *img[4][4];
 
 void startGUI();
 void startServer();
 void onWindowDestroy();
 void processCommand(struct control_struct*);
 
-void moveTop();
-void moveRight();
-void moveBottom();
-void moveLeft();
+void *moveTop();
+void *moveRight();
+void *moveBottom();
+void *moveLeft();
 
 int main (int argc, char *argv[])
 {
+    cur_col = cur_row = 0;
     gtk_init(&argc, &argv);
 
-    g_thread_new(NULL, (GThreadFunc)startServer, NULL);
-
     startGUI();
+    g_thread_new(NULL, (GThreadFunc)startServer, img);
+
     gtk_main();
 
     return EXIT_SUCCESS;
@@ -49,9 +51,18 @@ void startGUI()
 
     fixed = GTK_WIDGET(gtk_builder_get_object(builder, "fixed"));
 
-    img1 = GTK_WIDGET(gtk_builder_get_object(builder, "img1"));
-    gtk_widget_show(img1);
+    int y = 50;
+    for (int row = 0; row < ITEMS; row++) {
+        int x = 50;
 
+        for (int col = 0; col < ITEMS; col++) {
+            img[row][col] = gtk_image_new_from_file("caballo.png");
+            gtk_fixed_put((GtkFixed*)fixed, img[row][col], x, y);
+            x = x+100;
+        }
+        y = y+100;
+    }
+    gtk_widget_show(img[0][0]);
     gtk_widget_show(window);
 }
 
@@ -102,7 +113,7 @@ void startServer()
             // Se recibe informacion desde socket, limitado a MAX_CHAR bytes
             n = read(con_sock, line, sizeof(struct control_struct));
             if (n == 0){
-                printf("servidor: cliente termino de enviar\n");
+                g_print("servidor: cliente termino de enviar\n\n");
                 close(con_sock);
                 break;
             }
@@ -123,35 +134,75 @@ void processCommand(struct control_struct *cmd)
     if (cmd->key == SCKT_KEY) {
         switch (cmd->command) {
             case CMD_TOP:
-                moveTop();
+                g_idle_add((GSourceFunc)moveTop, NULL);
                 break;
             case CMD_RIGHT:
-                moveRight();
+                g_idle_add((GSourceFunc)moveRight, NULL);
                 break;
             case CMD_BOTTOM:
-                moveBottom();
+                g_idle_add((GSourceFunc)moveBottom, NULL);
                 break;
             case CMD_LEFT:
-                moveLeft();
+                g_idle_add((GSourceFunc)moveLeft, NULL);
                 break;
         }
     }
 }
 
-void moveTop() {
-    //gtk_label_set_text(GTK_LABEL(label), (const gchar*) "BTN-TOP");
+void *moveTop() {
+    if (cur_row == 0) {
+        return FALSE;
+    }
+
+    gtk_widget_hide(img[cur_row][cur_col]);
+    cur_row--;
+
+    gtk_widget_show(img[cur_row][cur_col]);
+    g_print("ROW: %d, COL: %d\n", cur_row, cur_col);
+
+    return FALSE;
 }
 
-void moveRight() {
-    //gtk_label_set_text(GTK_LABEL(label), (const gchar*) "BTN-RIGHT");
+void *moveRight() {
+    if (cur_col == (ITEMS-1)) {
+        return FALSE;
+    }
+
+    gtk_widget_hide(img[cur_row][cur_col]);
+    cur_col++;
+
+    gtk_widget_show(img[cur_row][cur_col]);
+    g_print("ROW: %d, COL: %d\n", cur_row, cur_col);
+
+    return FALSE;
 }
 
-void moveBottom() {
-    //gtk_label_set_text(GTK_LABEL(label), (const gchar*) "BTN-BOTTOM");
+void *moveBottom() {
+    if (cur_row == (ITEMS-1)) {
+        return FALSE;
+    }
+
+    gtk_widget_hide(img[cur_row][cur_col]);
+    cur_row++;
+
+    gtk_widget_show(img[cur_row][cur_col]);
+    g_print("ROW: %d, COL: %d\n", cur_row, cur_col);
+
+    return FALSE;
 }
 
-void moveLeft() {
-    //gtk_label_set_text(GTK_LABEL(label), (const gchar*) "BTN-LEFT");
+void *moveLeft() {
+    if (cur_col == 0) {
+        return FALSE;
+    }
+
+    gtk_widget_hide(img[cur_row][cur_col]);
+    cur_col--;
+
+    gtk_widget_show(img[cur_row][cur_col]);
+    g_print("ROW: %d, COL: %d\n", cur_row, cur_col);
+
+    return FALSE;
 }
 
 void onWindowDestroy()
